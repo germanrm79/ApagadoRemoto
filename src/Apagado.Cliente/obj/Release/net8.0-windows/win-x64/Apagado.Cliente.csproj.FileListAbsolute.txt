@@ -475,3 +475,4 @@ J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\wi
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\win-x64\refint\Apagado Remoto.dll
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\win-x64\Apagado Remoto.pdb
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\win-x64\ref\Apagado Remoto.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\win-x64\Apagado.Cliente.sourcelink.json

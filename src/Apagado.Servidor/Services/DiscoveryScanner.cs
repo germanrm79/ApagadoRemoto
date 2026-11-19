@@ -84,7 +84,8 @@ public class DiscoveryScanner
             {
                 MachineName = response.MachineName ?? string.Empty,
                 Ip = address.ToString(),
-                Port = response.Port ?? port
+                Port = response.Port ?? port,
+                Version = response.Version ?? "—"
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

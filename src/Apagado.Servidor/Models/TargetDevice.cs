@@ -9,6 +9,7 @@ public class TargetDevice : INotifyPropertyChanged
     private string _machineName = string.Empty;
     private string _ip = string.Empty;
     private int _port = 5007;
+    private string _version = "—";
     private string _lastStatus = "Sin acciones";
     private DateTime? _lastUpdated;
 
@@ -49,6 +50,18 @@ public class TargetDevice : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(Address));
             OnPropertyChanged(nameof(DisplayName));
+        }
+    }
+
+    public string Version
+    {
+        get => _version;
+        set
+        {
+            string next = string.IsNullOrWhiteSpace(value) ? "—" : value;
+            if (_version == next) return;
+            _version = next;
+            OnPropertyChanged();
         }
     }
 

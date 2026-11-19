@@ -57,7 +57,8 @@ public class TcpListenerService
                         Success = true,
                         Message = "Cliente activo",
                         MachineName = Environment.MachineName,
-                        Port = _port
+                        Port = _port,
+                        Version = UpdateService.CurrentVersion
                     };
                     await FrameWriter.WriteResponseAsync(stream, identify, cancellationToken);
                     Console.WriteLine($"[Apagado.Cliente] Identificado por {client.Client.RemoteEndPoint}");
@@ -92,6 +93,9 @@ public class TcpListenerService
                         return;
                     case CommandType.SetWallpaper:
                         await HandleWallpaperAsync(stream, header, imageData, cancellationToken);
+                        return;
+                    case CommandType.Update:
+                        await HandleUpdateAsync(stream, header, imageData, cancellationToken);
                         return;
                     default:
                         await RespondAsync(stream, header, false, "Tipo de comando no soportado", cancellationToken);
@@ -331,13 +335,42 @@ public class TcpListenerService
         }
     }
 
+    private async Task HandleUpdateAsync(NetworkStream stream, CommandHeader header, byte[]? imageData, CancellationToken cancellationToken)
+    {
+        if (imageData == null || imageData.Length == 0)
+        {
+            await RespondAsync(stream, header, false, "No se recibió el paquete de actualización.", cancellationToken);
+            return;
+        }
+
+        try
+        {
+            var updateService = new UpdateService();
+            bool started = updateService.TryStartUpdate(
+                imageData,
+                header.FileName,
+                header.PackageVersion,
+                header.PackageSha256,
+                header.AllowDowngrade,
+                out string message);
+
+            Console.WriteLine($"[Apagado.Cliente] {message}");
+            await RespondAsync(stream, header, started, message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await RespondAsync(stream, header, false, $"No se pudo iniciar la actualización: {ex.Message}", cancellationToken);
+        }
+    }
+
     private static async Task RespondAsync(NetworkStream stream, CommandHeader header, bool success, string message, CancellationToken cancellationToken)
     {
         var response = new CommandResponse
         {
             RequestId = header.RequestId,
             Success = success,
-            Message = message
+            Message = message,
+            Version = UpdateService.CurrentVersion
         };
         await FrameWriter.WriteResponseAsync(stream, response, cancellationToken);
     }

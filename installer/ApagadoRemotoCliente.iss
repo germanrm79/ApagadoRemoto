@@ -1,6 +1,6 @@
 [Setup]
 AppName=ApagadoRemoto Cliente
-AppVersion=1.3.0
+AppVersion=1.4.0
 AppPublisher=ApagadoRemoto
 DefaultDirName={commonpf}\ApagadoRemoto\Cliente
 DefaultGroupName=ApagadoRemoto
@@ -18,6 +18,7 @@ Source: "J:\German\ReactN\ApagadoRemoto\installer\addfirewall.ps1"; DestDir: "{a
 Source: "J:\German\ReactN\ApagadoRemoto\installer\removefirewall.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "J:\German\ReactN\ApagadoRemoto\installer\addtask.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "J:\German\ReactN\ApagadoRemoto\installer\removetask.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "J:\German\ReactN\ApagadoRemoto\installer\installupdate.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [InstallDelete]
 Type: files; Name: "{app}\APR.exe"

@@ -21,3 +21,4 @@ J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\obj\Debug\net8.0-windows\ref
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\obj\Debug\net8.0-windows\Apagado.Servidor.pdb
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\obj\Debug\net8.0-windows\Apagado.Servidor.genruntimeconfig.cache
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\obj\Debug\net8.0-windows\ref\Apagado.Servidor.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\obj\Debug\net8.0-windows\Apagado.Servidor.sourcelink.json

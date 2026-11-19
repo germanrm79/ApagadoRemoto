@@ -9,5 +9,6 @@ public enum CommandType
     CancelShutdown = 4,
     Lock = 5,
     Unlock = 6,
-    Notice = 7
+    Notice = 7,
+    Update = 8
 }

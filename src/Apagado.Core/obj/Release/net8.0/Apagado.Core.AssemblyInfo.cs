@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Apagado.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4aefcbdcab0c7bf79e673ca01d59891f3920badd")]
 [assembly: System.Reflection.AssemblyProductAttribute("Apagado.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Apagado.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

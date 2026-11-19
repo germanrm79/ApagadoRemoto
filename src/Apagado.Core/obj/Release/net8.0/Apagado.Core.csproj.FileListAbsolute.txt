@@ -9,3 +9,4 @@ J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Release\net8.0\Apagado.Core.
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Release\net8.0\refint\Apagado.Core.dll
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Release\net8.0\Apagado.Core.pdb
 j:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Release\net8.0\ref\Apagado.Core.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Release\net8.0\Apagado.Core.sourcelink.json

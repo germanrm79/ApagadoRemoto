@@ -60,6 +60,14 @@ try {
         -Description 'Aplica el fondo de escritorio configurado por ApagadoRemoto al iniciar sesion cualquier usuario.' `
         -Force | Out-Null
     Write-Log "Tarea '$wallpaperTaskName' registrada."
+
+    try {
+        Start-ScheduledTask -TaskName $systemTaskName -ErrorAction Stop
+        Write-Log "Tarea '$systemTaskName' iniciada."
+    }
+    catch {
+        Write-Log "No se pudo iniciar '$systemTaskName': $($_.Exception.Message)"
+    }
 }
 catch {
     Write-Log "ERROR: $($_.Exception.Message)"

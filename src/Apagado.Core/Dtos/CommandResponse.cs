@@ -7,4 +7,5 @@ public class CommandResponse
     public string Message { get; set; } = string.Empty;
     public string? MachineName { get; set; }
     public int? Port { get; set; }
+    public string? Version { get; set; }
 }

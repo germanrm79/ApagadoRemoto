@@ -1,5 +1,5 @@
 ﻿Apagado.Servidor
-1.0.0.0
+
 
 winexe
 C#
@@ -12,7 +12,7 @@ TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR
 J:\German\ReactN\ApagadoRemoto\src\Apagado.Servidor\App.xaml
 1-1644662438
 
-10-1370319277
+8403162479
 199-400098601
 Views\MainWindow.xaml;
 

@@ -1,5 +1,7 @@
 using Microsoft.Win32;
+using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +20,7 @@ public partial class MainWindow : Window
     private const string DefaultLockMessage = "Ud. ha infringido el reglamento. Para continuar, contacte al administrador.";
 
     private string? _selectedImagePath;
+    private string? _selectedUpdatePackagePath;
     private bool _isScanning;
     private readonly NetworkSender _sender = new();
     private readonly DiscoveryScanner _scanner = new();
@@ -178,16 +181,16 @@ public partial class MainWindow : Window
         return true;
     }
 
-    private async Task SendCommandToAllAsync(List<TargetDevice> targets, string action, Func<CommandHeader> headerFactory, byte[]? imageData = null)
+    private async Task SendCommandToAllAsync(List<TargetDevice> targets, string action, Func<CommandHeader> headerFactory, byte[]? imageData = null, int? timeoutMs = null)
     {
-        int timeoutMs = imageData != null ? 30000 : 5000;
+        int effectiveTimeoutMs = timeoutMs ?? (imageData != null ? 30000 : 5000);
 
         foreach (TargetDevice target in targets)
         {
             CommandHeader header = headerFactory();
             Log($"{action}: enviando a {target.DisplayName}...");
 
-            CommandResponse? resp = await _sender.SendAsync(target.Ip, target.Port, header, imageData, timeoutMs);
+            CommandResponse? resp = await _sender.SendAsync(target.Ip, target.Port, header, imageData, effectiveTimeoutMs);
             string status = resp == null
                 ? "ERROR: Sin respuesta"
                 : resp.Success ? $"OK: {resp.Message}" : $"ERROR: {resp.Message}";
@@ -284,6 +287,10 @@ public partial class MainWindow : Window
                     {
                         target.MachineName = scanned.MachineName;
                     }
+                    if (!string.IsNullOrWhiteSpace(scanned.Version))
+                    {
+                        target.Version = scanned.Version;
+                    }
                     target.LastStatus = "Activo";
                     target.LastUpdated = DateTime.Now;
                     Log($"Activo: {target.DisplayName}");
@@ -369,6 +376,10 @@ public partial class MainWindow : Window
             {
                 target.MachineName = response.MachineName;
             }
+            if (!string.IsNullOrWhiteSpace(response.Version))
+            {
+                target.Version = response.Version;
+            }
             target.LastStatus = "Activo";
             Log($"Activo: {target.DisplayName}");
         }
@@ -379,6 +390,29 @@ public partial class MainWindow : Window
         }
 
         target.LastUpdated = DateTime.Now;
+    }
+
+    private async void BtnRefreshVersions_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TryGetTargets(out List<TargetDevice> targets))
+        {
+            return;
+        }
+
+        btnRefreshVersions.IsEnabled = false;
+        try
+        {
+            foreach (TargetDevice target in targets)
+            {
+                await ProbeTargetAsync(target);
+            }
+            SaveTargets();
+            Log("Verificación de versiones finalizada.");
+        }
+        finally
+        {
+            btnRefreshVersions.IsEnabled = true;
+        }
     }
 
     private void BtnSelectImage_Click(object sender, RoutedEventArgs e)
@@ -399,6 +433,32 @@ public partial class MainWindow : Window
             imgPreview.Source = bmp;
             Log($"Imagen seleccionada: {Path.GetFileName(_selectedImagePath)}");
         }
+    }
+
+    private void BtnSelectUpdatePackage_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dlg = new OpenFileDialog
+        {
+            Filter = "Instalador de cliente|ApagadoRemotoClienteSetup.exe;*.exe",
+            Title = "Seleccionar instalador del cliente"
+        };
+        if (dlg.ShowDialog() != true)
+        {
+            return;
+        }
+
+        _selectedUpdatePackagePath = dlg.FileName;
+        txtUpdatePackage.Text = dlg.FileName;
+        string version = (FileVersionInfo.GetVersionInfo(dlg.FileName).ProductVersion ?? string.Empty).Trim();
+        txtUpdateVersion.Text = version;
+        txtUpdateSha256.Text = ComputeSha256(dlg.FileName);
+        Log($"Paquete de actualización seleccionado: {Path.GetFileName(dlg.FileName)} (v{version})");
+    }
+
+    private static string ComputeSha256(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
     }
 
     private WallpaperStyle GetSelectedStyle()
@@ -556,6 +616,94 @@ public partial class MainWindow : Window
             ContentType = contentType,
             Style = style
         }, imageData);
+    }
+
+    private async void BtnUpdateClients_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TryGetTargets(out List<TargetDevice> targets))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedUpdatePackagePath) || !File.Exists(_selectedUpdatePackagePath))
+        {
+            MessageBox.Show("Selecciona el instalador del cliente.");
+            return;
+        }
+
+        string version = txtUpdateVersion.Text.Trim();
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            MessageBox.Show("Indica la versión del paquete.");
+            return;
+        }
+
+        string sha256 = txtUpdateSha256.Text.Trim();
+        if (string.IsNullOrWhiteSpace(sha256))
+        {
+            sha256 = ComputeSha256(_selectedUpdatePackagePath);
+            txtUpdateSha256.Text = sha256;
+        }
+
+        List<TargetDevice> newer = targets.Where(t => IsVersionNewer(t.Version, version)).ToList();
+        if (newer.Count > 0)
+        {
+            string nombres = string.Join(", ", newer.Select(t => t.DisplayName));
+            MessageBoxResult result = MessageBox.Show(
+                $"Estos equipos tienen una versión mayor: {nombres}. ¿Continuar de todos modos?",
+                "Actualizar clientes",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
+        byte[] packageData = File.ReadAllBytes(_selectedUpdatePackagePath);
+        string fileName = Path.GetFileName(_selectedUpdatePackagePath);
+
+        await SendCommandToAllAsync(targets, "Actualizar", () => new CommandHeader
+        {
+            Type = CommandType.Update,
+            Token = txtToken.Text,
+            FileName = fileName,
+            ContentType = "application/octet-stream",
+            PackageVersion = version,
+            PackageSha256 = sha256
+        }, packageData, 600000);
+    }
+
+    private static bool IsVersionNewer(string current, string incoming)
+    {
+        string a = NormalizeVersion(current);
+        string b = NormalizeVersion(incoming);
+        return Version.TryParse(a, out Version? currentVersion)
+               && Version.TryParse(b, out Version? incomingVersion)
+               && currentVersion > incomingVersion;
+    }
+
+    private static string NormalizeVersion(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        string text = value.Trim();
+        int plus = text.IndexOf('+');
+        if (plus >= 0)
+        {
+            text = text[..plus];
+        }
+
+        int dash = text.IndexOf('-');
+        if (dash >= 0)
+        {
+            text = text[..dash];
+        }
+
+        return text;
     }
 
     private string GetContentType(string path)

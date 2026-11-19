@@ -21,6 +21,7 @@ El sistema se compone de dos aplicaciones:
 - [Descubrimiento de clientes](#descubrimiento-de-clientes)
 - [Persistencia de datos](#persistencia-de-datos)
 - [Avisos obligatorios](#avisos-obligatorios)
+- [Actualización remota](#actualización-remota)
 - [Tareas programadas del cliente](#tareas-programadas-del-cliente)
 - [Instalador](#instalador)
 - [Firewall](#firewall)
@@ -41,6 +42,7 @@ El sistema se compone de dos aplicaciones:
 | Desbloquear | Cierra la pantalla de bloqueo y elimina el aviso pendiente. |
 | Enviar aviso | Muestra un aviso a pantalla completa que el usuario debe aceptar para continuar. |
 | Cambiar fondo | Envía una imagen y la aplica con el estilo seleccionado. |
+| Actualizar cliente | Envía el instalador desde el servidor y lo aplica de forma silenciosa. |
 | Descubrimiento | Escanea la red local para encontrar clientes activos. |
 | Selección múltiple | Todas las acciones se aplican a uno o varios equipos. |
 
@@ -81,7 +83,8 @@ ApagadoRemoto/
 │  │     ├─ LockScreenService.cs   # Pantalla de bloqueo
 │  │     ├─ NoticeService.cs       # Avisos obligatorios con botón Aceptar
 │  │     ├─ OverlayKeyboardGuard.cs# Bloqueo de atajos en pantallas completas
-│  │     └─ SessionLauncher.cs     # Lanza procesos en sesiones de usuario
+│  │     ├─ SessionLauncher.cs     # Lanza procesos en sesiones de usuario
+│  │     └─ UpdateService.cs       # Descarga, valida y aplica actualizaciones
 │  └─ Apagado.Servidor/            # net8.0-windows — UI WPF
 │     ├─ App.xaml(.cs)
 │     ├─ Views/MainWindow.xaml(.cs)
@@ -93,6 +96,7 @@ ApagadoRemoto/
 ├─ installer/                      # Inno Setup y scripts de tareas/firewall
 │  ├─ ApagadoRemotoCliente.iss
 │  ├─ addtask.ps1
+│  ├─ installupdate.ps1          # Instalación silenciosa enviada por Update
 │  ├─ removetask.ps1
 │  ├─ addfirewall.ps1
 │  └─ removefirewall.ps1
@@ -142,8 +146,9 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
    - **Bloqueo**: mensaje y botones bloquear/desbloquear.
    - **Avisos**: título, mensaje y botón enviar aviso.
    - **Fondo de escritorio**: seleccionar imagen, estilo y aplicar.
+   - **Actualización**: seleccionar el instalador del cliente, verificar versiones y actualizar.
    - **Conexión**: token compartido y puerto por defecto.
-4. Revisar el resultado en **Historial / Log** y en la columna **Último estado**.
+4. Revisar el resultado en **Historial / Log** y en las columnas **Versión** y **Último estado**.
 
 El token y el puerto deben coincidir con la configuración del cliente. Por defecto: `clave-compartida-aqui` / `5007`.
 
@@ -221,7 +226,10 @@ La lógica de lectura/escritura está centralizada en `FrameReader` y `FrameWrit
   "Style": 4,                   // WallpaperStyle
   "DelaySeconds": 60,           // apagado/reinicio
   "Message": "texto",           // aviso de bloqueo o cuerpo del aviso
-  "Title": "texto"              // opcional (Notice)
+  "Title": "texto",             // opcional (Notice)
+  "PackageVersion": "1.4.0",    // opcional (Update)
+  "PackageSha256": "HEX",       // opcional (Update)
+  "AllowDowngrade": false       // opcional (Update)
 }
 ```
 
@@ -233,7 +241,8 @@ La lógica de lectura/escritura está centralizada en `FrameReader` y `FrameWrit
   "Success": true,
   "Message": "Fondo de escritorio aplicado correctamente.",
   "MachineName": "PC-AULA-01",  // solo en Identify
-  "Port": 5007                  // solo en Identify
+  "Port": 5007,                 // solo en Identify
+  "Version": "1.4.0"            // opcional
 }
 ```
 
@@ -249,6 +258,7 @@ La lógica de lectura/escritura está centralizada en `FrameReader` y `FrameWrit
 | `5` | `Lock` | Sí | Muestra pantalla de bloqueo con `Message`. |
 | `6` | `Unlock` | Sí | Cierra la pantalla de bloqueo. |
 | `7` | `Notice` | Sí | Muestra un aviso obligatorio con `Title` y `Message`; requiere pulsar Aceptar. |
+| `8` | `Update` | Sí | Recibe el instalador del cliente, valida `PackageSha256` y lo instala en silencio. |
 
 ### Estilos de fondo (`WallpaperStyle`)
 
@@ -268,6 +278,7 @@ La lógica de lectura/escritura está centralizada en `FrameReader` y `FrameWrit
 - `DelaySeconds` se limita a `0..604800` (7 días) en el cliente.
 - `CancelShutdown` usa `shutdown.exe /a` y responde con error si no había apagado programado.
 - `Notice` solo se muestra en sesiones activas: si no hay ninguna, responde error y no se guarda para el próximo inicio de sesión.
+- `Update` valida token, extensión `.exe`, tamaño máximo (256 MB), SHA-256 y que `PackageVersion` sea mayor que la versión instalada, salvo `AllowDowngrade`.
 - Mantener compatibilidad: los enums se serializan como números y los DTOs nuevos deben ser opcionales.
 
 ---
@@ -330,6 +341,22 @@ El comando `Notice` envía un aviso con título y mensaje a los equipos seleccio
 
 ---
 
+## Actualización remota
+
+El servidor puede distribuir el instalador del cliente a los equipos seleccionados:
+
+1. En la pestaña **Actualización**, seleccionar `ApagadoRemotoClienteSetup.exe`. El servidor lee la versión del archivo y calcula su SHA-256.
+2. Opcionalmente pulsar **Verificar versiones** para consultar `Identify` y ver la versión instalada en cada equipo.
+3. Pulsar **Actualizar clientes**. El instalador se envía como payload binario con un timeout de 10 minutos por equipo.
+4. El cliente valida token, extensión, tamaño máximo (256 MB), hash y versión; guarda el paquete en `%ProgramData%\ApagadoRemoto\Updates\` (`%LOCALAPPDATA%\ApagadoRemoto\Updates\` en pruebas) y responde al servidor.
+5. Como SYSTEM, lanza `installupdate.ps1`: espera 5 s para que la respuesta llegue al servidor, ejecuta el setup con `/VERYSILENT /NORESTART /SUPPRESSMSGBOXES` y reinicia la tarea `ApagadoRemoto Cliente`. El resultado final se escribe en `update-result.json`.
+
+Requisitos y limitaciones:
+
+- La primera versión con soporte `Update` es la **1.4.0**; debe instalarse manualmente una vez porque los clientes 1.3.0 no conocen el comando.
+- El paquete se valida con SHA-256, pero no se comprueba una firma digital; el token compartido sigue siendo la única autenticación del canal.
+- El envío es secuencial por equipo y el instalador cierra temporalmente los overlays de bloqueo o avisos activos.
+
 ## Tareas programadas del cliente
 
 El instalador crea dos tareas:
@@ -340,6 +367,7 @@ El instalador crea dos tareas:
 | `ApagadoRemoto Fondo Escritorio` | Al iniciar sesión cualquier usuario | Grupo Usuarios, `RunLevel Limited` | Ejecuta `--apply-pending-wallpaper`; sin límite de tiempo e instancias paralelas. |
 
 - El listener SYSTEM no puede cambiar el escritorio; usa `SessionLauncher` para lanzar helpers en las sesiones activas (`WTSQueryUserToken` + `CreateProcessAsUser`).
+- `addtask.ps1` inicia el listener al registrar o actualizar las tareas; `installupdate.ps1` lo reinicia al terminar una actualización remota.
 - El bloqueo usa el mismo mecanismo: `--show-lock "<mensaje>"` y `--hide-lock` por sesión.
 - Los avisos obligatorios usan el mismo mecanismo: `--show-notice <base64-json>` por sesión.
 - El desbloqueo se señaliza con el evento local `Local\ApagadoRemoto.LockScreen`.
@@ -353,6 +381,7 @@ Archivo: `installer/ApagadoRemotoCliente.iss` (Inno Setup).
 
 - Instala en `{commonpf}\ApagadoRemoto\Cliente`.
 - Copia `publish\Cliente\*` y los scripts de `installer\`.
+- Copia `installupdate.ps1`, usado por las actualizaciones enviadas desde el servidor.
 - Ejecuta `addfirewall.ps1` y `addtask.ps1` al instalar.
 - Al desinstalar ejecuta `removetask.ps1` y `removefirewall.ps1`.
 - En actualizaciones detiene tareas y procesos (`Apagado Remoto.exe`, `APR.exe`, `Apagado.Cliente.exe`) antes de reemplazar archivos.
@@ -371,11 +400,11 @@ El instalador agrega la regla `ApagadoRemoto - Cliente TCP 5007` para los perfil
 
 ## Versionado y publicación
 
-- Versión actual del cliente: **1.3.0**
-  - `Version` / `InformationalVersion`: `1.3.0`
-  - `FileVersion` / `AssemblyVersion`: `1.3.0.0`
+- Versión actual del cliente: **1.4.0**
+  - `Version` / `InformationalVersion`: `1.4.0`
+  - `FileVersion` / `AssemblyVersion`: `1.4.0.0`
   - En `src/Apagado.Cliente/Apagado.Cliente.csproj`
-- `AppVersion=1.3.0` en `installer/ApagadoRemotoCliente.iss`.
+- `AppVersion=1.4.0` en `installer/ApagadoRemotoCliente.iss`.
 - El ejecutable se llama **`Apagado Remoto.exe`** (`AssemblyName=Apagado Remoto`).
 - Al cambiar código del cliente:
   1. Subir la versión en el `.csproj` y en el `.iss`.
@@ -394,6 +423,7 @@ El instalador agrega la regla `ApagadoRemoto - Cliente TCP 5007` para los perfil
 | `Access path is denied` | El cliente debe escribir en `%ProgramData%\ApagadoRemoto` solo como SYSTEM; en pruebas locales usa `%LOCALAPPDATA%`. |
 | El bloqueo no aparece | Debe haber una sesión activa o el aviso se mostrará al iniciar sesión (revisar `lock.json`). |
 | El aviso obligatorio no aparece | Debe haber una sesión activa; el aviso no se guarda para el próximo inicio de sesión. Revisar el log del servidor. |
+| La actualización remota falla | El cliente debe ser 1.4.0 o superior, el token debe coincidir y el SHA-256 del paquete debe ser correcto. Revisar `%ProgramData%\ApagadoRemoto\Updates\install.log` y `update-result.json`. |
 | `Ctrl+Alt+Del` cierra el bloqueo o el aviso | Limitación de Windows: una aplicación no puede bloquear esa combinación. |
 
 ---
@@ -406,3 +436,5 @@ El instalador agrega la regla `ApagadoRemoto - Cliente TCP 5007` para los perfil
 - El descubrimiento asume redes `/24`; en subredes mayores se recorta a la `/24` de la IP local.
 - No hay autenticación más allá del token compartido ni cifrado del canal TCP. Usar en redes de confianza.
 - No hay tests automatizados.
+- El paquete de actualización se envía en un único frame: consume memoria en el servidor y en el cliente y se transmite secuencialmente equipo por equipo.
+- SHA-256 detecta corrupción, pero no sustituye una firma digital del instalador.

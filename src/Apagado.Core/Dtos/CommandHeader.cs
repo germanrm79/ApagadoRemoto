@@ -15,4 +15,7 @@ public class CommandHeader
     public int DelaySeconds { get; set; }
     public string? Message { get; set; }
     public string? Title { get; set; }
+    public string? PackageVersion { get; set; }
+    public string? PackageSha256 { get; set; }
+    public bool AllowDowngrade { get; set; }
 }

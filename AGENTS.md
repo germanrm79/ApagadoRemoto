@@ -33,7 +33,7 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
 
 ## Version y empaquetado
 
-- Version actual del cliente: `1.3.0` (`Version`/`InformationalVersion`) y `1.3.0.0` (`FileVersion`/`AssemblyVersion`) en `src/Apagado.Cliente/Apagado.Cliente.csproj`; `AppVersion=1.3.0` en `installer/ApagadoRemotoCliente.iss`.
+- Version actual del cliente: `1.4.0` (`Version`/`InformationalVersion`) y `1.4.0.0` (`FileVersion`/`AssemblyVersion`) en `src/Apagado.Cliente/Apagado.Cliente.csproj`; `AppVersion=1.4.0` en `installer/ApagadoRemotoCliente.iss`.
 - El ejecutable se llama `Apagado Remoto.exe` (`AssemblyName=Apagado Remoto` en el `.csproj`); `ProductName` y descripcion tambien son `Apagado Remoto`.
 - Salida publicada usada por el instalador: `publish\Cliente`. Instalador final: `installer\ApagadoRemotoClienteSetup.exe`.
 - Al cambiar codigo del cliente: subir version en el `.csproj` y en el `.iss`, publicar y recompilar el instalador.
@@ -63,11 +63,22 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
 - Extraido el hook de teclado de `LockScreenService` a `Services/OverlayKeyboardGuard.cs`, reutilizado por bloqueo y aviso. Ahora el guard bloquea tambien `Esc` simple.
 - Version del cliente subida a `1.3.0`.
 
+## Estado actual (18/11/2026)
+
+- Agregado el comando `Update` (`CommandType.Update = 8`) para enviar el instalador del cliente desde el servidor y actualizar equipos de forma remota.
+- El servidor tiene una pestana "Actualización": selecciona `ApagadoRemotoClienteSetup.exe`, lee la version con `FileVersionInfo`, calcula SHA-256 y envia el paquete como payload binario con timeout de 10 minutos.
+- `Identify` devuelve `CommandResponse.Version`; el servidor muestra la columna "Versión" y puede verificar versiones de los destinos seleccionados.
+- El cliente valida token, tamano maximo (256 MB), extension `.exe`, SHA-256 y que la version del paquete sea mayor que la instalada (salvo `AllowDowngrade`). Guarda el paquete en `%ProgramData%\ApagadoRemoto\Updates\` (o `%LOCALAPPDATA%\ApagadoRemoto\Updates\` en pruebas) con `update.json` y `update-result.json`.
+- El cliente responde al servidor antes de iniciar la instalacion. Luego lanza `installupdate.ps1`, que espera 5 segundos, ejecuta el setup con `/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /LOG=...` y fuerza `Start-ScheduledTask -TaskName 'ApagadoRemoto Cliente'` en `finally`.
+- `addtask.ps1` ahora inicia el listener al registrar las tareas, tanto en instalaciones manuales como remotas.
+- Los clientes `1.3.0` no entienden `Update`: hay que instalar manualmente el setup `1.4.0` una vez; despues ya se pueden actualizar desde el servidor.
+
 ## Pendientes
 
 - Reinstalar `installer\ApagadoRemotoClienteSetup.exe` en el equipo con fondo negro y volver a probar `SetWallpaper`.
 - Si el fondo sigue negro: confirmar que la tarea `ApagadoRemoto Cliente` corre como SYSTEM, revisar los errores de `SessionLauncher` y recopilar logs del cliente. No hay logging persistente implementado.
 - Probar el aviso `Notice` en un equipo con sesion activa y como SYSTEM (sin sesion) para validar el overlay y el mensaje de error.
+- Probar `Update` en una VM con el setup `1.4.0`: verificar hash, staging, instalacion silenciosa, reinicio del listener y la columna "Versión" despues de actualizar.
 
 ## Arquitectura
 
@@ -75,10 +86,11 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
 - El servidor usa code-behind en WPF, no MVVM. `ViewModels/MainViewModel.cs` esta vacio y sin uso.
 - `Core/Protocol/FrameWriter.cs` y `FrameReader.cs` implementan el framing:
   - Cabecera: `Int32` little-endian con la longitud + JSON UTF-8 de `CommandHeader`.
-  - Si `ImageLength > 0`, siguen los bytes crudos de la imagen.
+  - Si `ImageLength > 0`, siguen los bytes crudos del payload (imagen o paquete de actualizacion).
   - Respuesta: `Int32` con la longitud + JSON UTF-8 de `CommandResponse`.
-- `CommandType`: `Shutdown = 0`, `SetWallpaper = 1`, `Identify = 2`, `Reboot = 3`, `CancelShutdown = 4`, `Lock = 5`, `Unlock = 6`, `Notice = 7`.
-- `CommandHeader.DelaySeconds` programa el apagado/reinicio; `CommandHeader.Message` contiene el aviso del bloqueo o el cuerpo del aviso; `CommandHeader.Title` es el titulo opcional de `Notice`.
+- `CommandType`: `Shutdown = 0`, `SetWallpaper = 1`, `Identify = 2`, `Reboot = 3`, `CancelShutdown = 4`, `Lock = 5`, `Unlock = 6`, `Notice = 7`, `Update = 8`.
+- `CommandHeader.DelaySeconds` programa el apagado/reinicio; `CommandHeader.Message` contiene el aviso del bloqueo o el cuerpo del aviso; `CommandHeader.Title` es el titulo opcional de `Notice`; `CommandHeader.PackageVersion`/`PackageSha256`/`AllowDowngrade` describen el paquete de `Update`.
+- `CommandResponse.Version` se rellena en `Identify` y en las respuestas del cliente.
 
 ## Reglas del protocolo
 
@@ -87,6 +99,7 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
 - `CancelShutdown` usa `shutdown.exe /a`; responde con error si no habia apagado programado.
 - `Lock`/`Unlock` requieren token. `Lock` guarda el aviso pendiente y muestra una pantalla completa en las sesiones activas; `Unlock` la cierra y elimina el pendiente.
 - `Notice` requiere token. Muestra un overlay con boton **Aceptar** solo en sesiones activas/desconectadas; no persiste el aviso y no reporta la aceptacion. `Title` es opcional.
+- `Update` requiere token. Recibe el instalador en el payload, valida `PackageSha256` y `PackageVersion`, rechaza downgrades salvo `AllowDowngrade`, guarda el paquete en `Updates\`, responde al servidor y lanza `installupdate.ps1`. El resultado final se escribe en `update-result.json`; el servidor puede confirmarlo con `Identify`.
 - Mantener compatibilidad: los enums se serializan como numeros y los DTOs nuevos deben ser opcionales.
 
 ## Descubrimiento de clientes
@@ -110,18 +123,28 @@ No hay proyecto de tests ni linter configurado. Verificar siempre con `dotnet bu
 
 ## Tareas programadas del cliente
 
-- `ApagadoRemoto Cliente`: al arrancar el equipo, cuenta `SYSTEM`, `RunLevel Highest`; mantiene el listener TCP sin requerir sesion.
+- `ApagadoRemoto Cliente`: al arrancar el equipo, cuenta `SYSTEM`, `RunLevel Highest`; mantiene el listener TCP sin requerir sesion. `addtask.ps1` tambien lo inicia al registrar/actualizar la tarea y `installupdate.ps1` lo reinicia tras una actualizacion remota.
 - `ApagadoRemoto Fondo Escritorio`: al iniciar sesion cualquier usuario (grupo Usuarios), `RunLevel Limited`; ejecuta `Apagado Remoto.exe --apply-pending-wallpaper`, aplica el fondo y, si existe `lock.json`, muestra el aviso de bloqueo. Sin limite de tiempo y con instancias paralelas.
 - El listener SYSTEM no puede cambiar el escritorio del usuario: guarda el fondo y lanza un helper en cada sesion activa con `CreateProcessAsUser` (`Services/SessionLauncher.cs`). Los usuarios sin sesion reciben el fondo al iniciar sesion.
 - El bloqueo usa el mismo mecanismo: `--show-lock "<mensaje>"` y `--hide-lock` se lanzan por sesion. El desbloqueo se senaliza con el evento local `Local\ApagadoRemoto.LockScreen`. La pantalla de bloqueo (`Services/LockScreenService.cs`) bloquea Alt+F4, Alt+Tab, teclas Windows, Ctrl+Esc y Ctrl+Shift+Esc, pero no puede bloquear Ctrl+Alt+Del.
 - Los avisos usan el mismo mecanismo: `--show-notice <base64-json>` se lanza por sesion; `Services/NoticeService.cs` muestra el overlay y `Services/OverlayKeyboardGuard.cs` bloquea los atajos.
 
-## Prueba manual del fondo
+## Actualización remota
+
+- El servidor selecciona `ApagadoRemotoClienteSetup.exe` en la pestana "Actualización" y calcula `ProductVersion` y SHA-256.
+- `BtnUpdateClients_Click` envia `CommandType.Update` con el instalador como payload y timeout de 10 minutos por destino; `SendCommandToAllAsync` admite timeout explicito.
+- `UpdateService.TryStartUpdate` valida token (en el despacho), tamano, extension, hash y version; usa el mutex `Local\ApagadoRemoto.ClientUpdate` y archivos temporales con `File.Move(..., true)`.
+- En modo SYSTEM se lanza `installupdate.ps1` con `powershell.exe`; en pruebas locales solo se prepara el paquete y la respuesta lo indica.
+- El instalador detiene tareas/procesos, reemplaza archivos, vuelve a registrar tareas y `addtask.ps1` inicia el listener. `installupdate.ps1` tambien lo inicia en `finally` y escribe `update-result.json`.
+- El primer despliegue de `1.4.0` es manual porque `1.3.0` no conoce el comando `Update`.
+
+## Prueba manual del fondo y la actualización
 
 - Ejecutar `publish\Cliente\Apagado Remoto.exe --apply-wallpaper "<ruta imagen>" Fill`.
 - Verificar que `HKCU:\Control Panel\Desktop\Wallpaper` apunte a una ruta bajo `%LOCALAPPDATA%\ApagadoRemoto\Wallpapers\` y que el archivo exista y sea legible.
 - Para probar el flujo completo del listener, iniciar el cliente con `APAGADO_PORT=5099` (o el puerto configurado), enviar `SetWallpaper` y revisar la respuesta. Este flujo no reproduce exactamente el helper instalado como SYSTEM.
 - Para probar un aviso: enviar `Notice` desde el servidor o ejecutar `publish\Cliente\Apagado Remoto.exe --show-notice <base64>`, donde el base64 es `[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('{"Title":"Prueba","Message":"Hola"}'))`. Verificar el overlay, el bloqueo de atajos y el cierre con **Aceptar**.
+- Para probar `Update`, iniciar el cliente local con `APAGADO_PORT=5099`, seleccionar el setup en el servidor y enviarlo a `127.0.0.1:5099`. Verificar la respuesta, `%LOCALAPPDATA%\ApagadoRemoto\Updates\update.json` y que el modo local no lanza el instalador.
 - Restaurar el fondo original del equipo al terminar las pruebas.
 
 ## Convenciones
