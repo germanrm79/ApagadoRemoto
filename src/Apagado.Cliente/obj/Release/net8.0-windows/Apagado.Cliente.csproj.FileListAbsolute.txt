@@ -1,0 +1,19 @@
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.csproj.AssemblyReference.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.GeneratedMSBuildEditorConfig.editorconfig
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.AssemblyInfoInputs.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.AssemblyInfo.cs
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.csproj.CoreCompileInputs.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\System.Drawing.Common.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado.Core.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado.Core.pdb
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado..98B51EF2.Up2Date
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado.Cliente.genruntimeconfig.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado Remoto.exe
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado Remoto.deps.json
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado Remoto.runtimeconfig.json
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado Remoto.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\bin\Release\net8.0-windows\Apagado Remoto.pdb
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado Remoto.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\refint\Apagado Remoto.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\Apagado Remoto.pdb
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Cliente\obj\Release\net8.0-windows\ref\Apagado Remoto.dll

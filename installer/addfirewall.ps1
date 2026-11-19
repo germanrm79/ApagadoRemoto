@@ -1,0 +1,1 @@
+if (-not (Get-NetFirewallRule -DisplayName 'ApagadoRemoto - Cliente TCP 5007' -ErrorAction SilentlyContinue)) { New-NetFirewallRule -DisplayName 'ApagadoRemoto - Cliente TCP 5007' -Direction Inbound -Protocol TCP -LocalPort 5007 -Action Allow -Profile Domain,Private,Public | Out-Null }

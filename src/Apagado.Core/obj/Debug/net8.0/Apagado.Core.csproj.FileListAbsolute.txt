@@ -1,0 +1,11 @@
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\bin\Debug\net8.0\Apagado.Core.deps.json
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\bin\Debug\net8.0\Apagado.Core.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\bin\Debug\net8.0\Apagado.Core.pdb
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.GeneratedMSBuildEditorConfig.editorconfig
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.AssemblyInfoInputs.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.AssemblyInfo.cs
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.csproj.CoreCompileInputs.cache
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\refint\Apagado.Core.dll
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\Apagado.Core.pdb
+J:\German\ReactN\ApagadoRemoto\src\Apagado.Core\obj\Debug\net8.0\ref\Apagado.Core.dll

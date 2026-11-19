@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Apagado.Cliente/Apagado.Cliente.csproj" />
+    <Project Path="src/Apagado.Core/Apagado.Core.csproj" />
+    <Project Path="src/Apagado.Servidor/Apagado.Servidor.csproj" />
+  </Folder>
+</Solution>
